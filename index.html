@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generatore Ricevuta (Compact)</title>
+    <style>
+        /* --- STILE GENERALE INTERFACCIA --- */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 10px;
+            color: #333;
+        }
+
+        /* Pannello di Controllo */
+        .control-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 800px;
+            margin: 0 auto 30px auto;
+            border-left: 5px solid #28a745;
+        }
+
+        h2 { margin-top: 0; color: #28a745; font-size: 1.5rem; }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .full-width { grid-column: span 2; }
+
+        /* Mobile Friendly Rules */
+        @media screen and (max-width: 768px) {
+            .form-grid { grid-template-columns: 1fr !important; }
+            .full-width { grid-column: span 1 !important; }
+            .item-row { flex-direction: column; align-items: stretch !important; }
+            .item-amount-in { width: 100% !important; margin-top: 5px; }
+            .euro-symbol { display: none; }
+            
+            /* Scala l'anteprima su mobile per farla vedere tutta */
+            .page-container {
+                transform: scale(0.55); 
+                transform-origin: top left;
+                width: 210mm;
+                margin-bottom: -130mm; 
+            }
+            .preview-title-mobile { display: block !important; margin-top: 20px; color: #666; font-style: italic;}
+        }
+
+        .preview-title-mobile { display: none; }
+
+        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9em; }
+        input, textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 16px; }
+        ::placeholder { color: #aaa; font-style: italic; }
+
+        .items-section {
+            background: #e8f5e9; padding: 15px; border-radius: 4px; margin-bottom: 15px; border: 1px solid #c3e6cb;
+        }
+        .item-row { display: flex; gap: 10px; margin-bottom: 15px; align-items: center; border-bottom: 1px solid #ddd; padding-bottom: 10px; }
+        .item-row:last-child { border-bottom: none; }
+        .item-desc { flex-grow: 2; }
+        .note-small { font-size: 0.85em; color: #666; margin-top: 5px; font-style: italic; }
+
+        button.print-btn {
+            background-color: #007bff; color: white; border: none; padding: 15px 20px; font-size: 18px; border-radius: 5px; cursor: pointer; display: block; width: 100%; margin-top: 10px; font-weight: bold; -webkit-appearance: none;
+        }
+        button.print-btn:hover { background-color: #0056b3; }
+        
+        .add-row-btn {
+            background: none; border: none; color: #28a745; cursor: pointer; font-size: 16px; padding: 10px 0; text-decoration: underline; display: block; width: 100%; text-align: left;
+        }
+
+        /* --- STILE DELLA RICEVUTA (FOGLIO A4 - VERSIONE COMPATTA) --- */
+        .page-container {
+            background: white;
+            width: 210mm;
+            min-height: 297mm;
+            margin: 0 auto;
+            /* Margini ridotti (da 20 a 15mm) per guadagnare spazio */
+            padding: 15mm 20mm; 
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+            box-sizing: border-box;
+            position: relative;
+            overflow: hidden; 
+            /* Font base più piccolo (da 14 a 12px) */
+            font-size: 12px; 
+            line-height: 1.3;
+        }
+
+        /* Riduzione spazi verticali (margin-bottom) */
+        .header { display: flex; justify-content: space-between; margin-bottom: 25px; } /* Era 40px */
+        
+        .issuer-info { font-size: 12px; line-height: 1.4; min-height: 70px; }
+        .issuer-name { font-weight: bold; font-size: 16px; text-transform: uppercase; } /* Era 18px */
+        .placeholder-text { color: #ccc; text-transform: uppercase; letter-spacing: 1px; }
+
+        .stamp-box {
+            border: 1px solid #ccc; width: 90px; height: 90px; /* Box leggermente più piccolo */
+            text-align: center; font-size: 9px; color: #aaa;
+            display: flex; flex-direction: column; justify-content: center; align-items: center; background: #fff; opacity: 0.2;
+        }
+        .stamp-active { border: 2px solid #333; color: #000; font-weight: bold; opacity: 1 !important; }
+
+        .recipient-info { 
+            margin-left: 50%; 
+            margin-bottom: 25px; /* Era 40px */
+            font-size: 12px; 
+            line-height: 1.4; 
+        }
+
+        .date-loc { text-align: right; margin-bottom: 15px; font-style: italic;}
+
+        .title { 
+            text-align: center; font-weight: bold; margin-bottom: 10px; 
+            text-transform: uppercase; font-size: 14px; /* Era 16px */
+            border-bottom: 2px solid #eee; padding-bottom: 5px; 
+        }
+        
+        .description-text { margin-bottom: 20px; font-size: 12px; } /* Era 30px */
+
+        .calc-table { width: 100%; border-collapse: collapse; margin-bottom: 25px; } /* Era 40px */
+        .calc-table th, .calc-table td { 
+            padding: 6px 4px; /* Padding ridotto */
+            border-bottom: 1px solid #eee; text-align: left; font-size: 12px; 
+        }
+        .calc-table td.amount { text-align: right; }
+        .calc-table tr.total-row { font-weight: bold; font-size: 14px; background-color: #f9f9f9; }
+
+        .legal-note { 
+            font-size: 10px; color: #555; 
+            margin-bottom: 20px; /* Era 30px */
+            line-height: 1.3; border-top: 1px solid #ddd; padding-top: 10px; 
+        }
+        
+        .payment-info { margin-bottom: 30px; font-weight: bold; background: #eee; padding: 8px; font-size: 12px;}
+        
+        .signature { text-align: right; margin-top: 30px; } /* Era 50px */
+        .signature-line { display: inline-block; border-top: 1px solid #333; width: 200px; margin-top: 30px; text-align: center; padding-top: 5px; }
+
+        @media print {
+            body { background: none; padding: 0; margin: 0; }
+            .control-panel { display: none !important; }
+            .page-container { transform: none !important; margin: 0; width: 100%; height: auto; border: none; box-shadow: none; padding: 15mm 20mm !important; }
+            @page { margin: 0; size: auto; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="control-panel no-print">
+        <h2>Inserisci Dati (Versione Compatta)</h2>
+        <p>I caratteri sono ridotti per far stare tutto in una pagina.</p>
+        
+        <div class="form-grid">
+            <div>
+                <label>Tuo Nome e Cognome</label>
+                <input type="text" id="in_name" placeholder="Es: Mario Rossi" oninput="updateView()">
+            </div>
+            <div>
+                <label>Tuo Codice Fiscale</label>
+                <input type="text" id="in_cf" placeholder="Es: RSSMRA..." oninput="updateView()">
+            </div>
+            <div class="full-width">
+                <label>Tuo Indirizzo</label>
+                <input type="text" id="in_address" placeholder="Es: Via Roma 10, Milano" oninput="updateView()">
+            </div>
+            
+            <div class="full-width">
+                <label>Cliente (Azienda)</label>
+                <textarea rows="3" id="in_client" oninput="updateView()">Spett.le Azienda WAY S.r.l.
+Via Pordenone, 2
+20132 Milano
+P. IVA: 10728950964</textarea>
+            </div>
+
+            <div>
+                <label>Città e Data</label>
+                <input type="text" id="in_date" placeholder="Es: Milano, 30 Settembre 2025" oninput="updateView()">
+            </div>
+            <div>
+                <label>Mese/Rif.</label>
+                <input type="text" id="in_month" placeholder="Es: SETTEMBRE 2025" oninput="updateView()">
+            </div>
+        </div>
+
+        <div class="items-section">
+            <label>Attività (Inserisci Importo NETTO)</label>
+            <div id="items-container" style="margin-top:10px;">
+                </div>
+            <button type="button" class="add-row-btn" onclick="addNewRow()">+ Aggiungi un'altra voce</button>
+        </div>
+
+        <div class="form-grid">
+            <div class="full-width">
+                <label>Tuo IBAN</label>
+                <input type="text" id="in_iban" placeholder="IT00 X 00000..." oninput="updateView()">
+            </div>
+        </div>
+
+        <button class="print-btn" onclick="window.print()">🖨️ Stampa / Salva PDF</button>
+        
+        <div class="preview-title-mobile">
+            <br>👇 Anteprima Ricevuta (Compact) 👇
+        </div>
+    </div>
+
+    <div class="page-container">
+        <div class="header">
+            <div class="issuer-info">
+                <div class="issuer-name" id="out_name"><span class="placeholder-text">NOME COGNOME</span></div>
+                <div id="out_address"><span class="placeholder-text">INDIRIZZO COMPLETO</span></div>
+                <div id="out_cf"><span class="placeholder-text">CODICE FISCALE</span></div>
+            </div>
+            <div class="stamp-box" id="stamp_box">
+                <div style="font-weight:bold">MARCA DA BOLLO</div>
+                <div style="font-size:12px">€ 2,00</div>
+                <div style="font-size:8px; margin-top:5px">ID: ______________</div>
+                <div style="font-size:8px">Data: --/--/----</div>
+            </div>
+        </div>
+
+        <div class="recipient-info"><pre id="out_client" style="font-family: inherit; margin:0;">Dati Cliente...</pre></div>
+        <div class="date-loc" id="out_date">Città, Data...</div>
+        <div class="title">RICEVUTA PER LAVORO SVOLTO NEL MESE DI <span id="out_month">...</span></div>
+        <div class="description-text">Ricevo compenso per il servizio occasionale di Accoglienza e Accompagnamento ai tour di Way Experience, a Milano.</div>
+
+        <table class="calc-table">
+            <thead>
+                <tr><th style="border-bottom: 2px solid #ddd;">Descrizione Prestazione</th><th class="amount" style="border-bottom: 2px solid #ddd;">Importo Lordo</th></tr>
+            </thead>
+            <tbody id="out_items_table"></tbody>
+            <tr><td style="border-top: 2px solid #333; padding-top: 10px;"><strong>Totale Compenso Lordo</strong></td><td class="amount" style="border-top: 2px solid #333; padding-top: 10px;"><strong id="out_gross">0,00 €</strong></td></tr>
+            <tr><td>Ritenuta d'acconto (20%)</td><td class="amount" style="color: #d9534f;">- <span id="out_tax">0,00 €</span></td></tr>
+            <tr id="row_stamp" style="display:none; background-color: #fffbe6;"><td>Rimborso Marca da bollo (Lordo > 77,47€)</td><td class="amount">+ 2,00 €</td></tr>
+            <tr class="total-row"><td style="border-top: 2px solid #333;">NETTO A PAGARE</td><td class="amount" style="border-top: 2px solid #333;" id="out_net">0,00 €</td></tr>
+        </table>
+
+        <div class="legal-note">Il sottoscritto dichiara altresì di non essere soggetto a IVA ai sensi degli artt. 1 e 5 del DPR 633/72 come successivamente integrato e modificato.<br>Prestazione occasionale soggetta a ritenuta d'acconto art. 25 DPR 600/73.<span id="bollo_note" style="display:none;"><br>Imposta di bollo assolta sull'originale.</span></div>
+        <div class="payment-info">PAGAMENTO TRAMITE BONIFICO<br>IBAN: <span id="out_iban">...</span></div>
+        <div class="signature"><div>Firma</div><div class="signature-line" id="out_sign_name"></div></div>
+    </div>
+
+    <script>
+        function init() {
+            const container = document.getElementById('items-container');
+            // Creiamo 4 righe vuote
+            for(let i=0; i<4; i++) addNewRow();
+            updateView();
+        }
+
+        function addNewRow() {
+            const container = document.getElementById('items-container');
+            const div = document.createElement('div');
+            div.className = 'item-row';
+            div.innerHTML = `
+                <input type="text" class="item-desc-in" placeholder="Descrizione attività" oninput="updateView()">
+                <div style="position:relative; min-width: 100px;">
+                    <input type="number" class="item-amount-in" placeholder="Netto €" step="0.50" oninput="updateView()">
+                    <span class="euro-symbol" style="position:absolute; right:30px; top:8px; color:#aaa; font-size:0.8em; pointer-events:none;">€</span>
+                </div>
+            `;
+            container.appendChild(div);
+        }
+
+        function formatCurrency(num) {
+            return num.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+        }
+
+        function updateView() {
+            const setSafeText = (idIn, idOut, placeholder) => {
+                const val = document.getElementById(idIn).value;
+                const outEl = document.getElementById(idOut);
+                if (val && val.trim() !== "") {
+                    outEl.innerText = val;
+                    outEl.innerHTML = val.replace(/\n/g, "<br>");
+                    outEl.classList.remove("placeholder-text");
+                } else {
+                    outEl.innerHTML = `<span class="placeholder-text">${placeholder}</span>`;
+                }
+            };
+
+            setSafeText('in_name', 'out_name', 'NOME COGNOME');
+            setSafeText('in_name', 'out_sign_name', '');
+            setSafeText('in_address', 'out_address', 'INDIRIZZO COMPLETO');
+            setSafeText('in_cf', 'out_cf', 'CODICE FISCALE');
+            setSafeText('in_date', 'out_date', 'Città, Data...');
+            setSafeText('in_month', 'out_month', '...');
+            setSafeText('in_iban', 'out_iban', 'IT00 ...');
+            document.getElementById('out_client').innerText = document.getElementById('in_client').value;
+
+            // CALCOLI
+            const descInputs = document.querySelectorAll('.item-desc-in');
+            const amntInputs = document.querySelectorAll('.item-amount-in');
+            const tableBody = document.getElementById('out_items_table');
+            
+            tableBody.innerHTML = ''; 
+            let totalGross = 0;
+            let hasItems = false;
+
+            descInputs.forEach((descIn, index) => {
+                const desc = descIn.value;
+                const netVal = parseFloat(amntInputs[index].value);
+                if (desc || netVal) {
+                    const displayDesc = desc || "---";
+                    const safeNet = netVal || 0;
+                    const rowGross = safeNet / 0.80; // Lordo = Netto / 0.80
+                    totalGross += rowGross;
+                    hasItems = true;
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `<td>${displayDesc}</td><td class="amount">${formatCurrency(rowGross)}</td>`;
+                    tableBody.appendChild(tr);
+                }
+            });
+
+            if (!hasItems) tableBody.innerHTML = '<tr><td colspan="2" style="text-align:center; color:#ccc; font-style:italic; padding:20px;">Compila i campi sopra...</td></tr>';
+
+            const tax = totalGross * 0.20;
+            let netBase = totalGross - tax; 
+
+            // BOLLO
+            let stampDuty = 0;
+            const stampBox = document.getElementById('stamp_box');
+            const rowStamp = document.getElementById('row_stamp');
+            const bolloNote = document.getElementById('bollo_note');
+
+            if (totalGross > 77.47) {
+                stampDuty = 2.00;
+                stampBox.classList.add('stamp-active');
+                rowStamp.style.display = "table-row";
+                bolloNote.style.display = "inline";
+            } else {
+                stampBox.classList.remove('stamp-active');
+                rowStamp.style.display = "none";
+                bolloNote.style.display = "none";
+            }
+            const finalNetToPay = netBase + stampDuty;
+            document.getElementById('out_gross').innerText = formatCurrency(totalGross);
+            document.getElementById('out_tax').innerText = formatCurrency(tax);
+            document.getElementById('out_net').innerText = formatCurrency(finalNetToPay);
+        }
+
+        init();
+    </script>
+</body>
+</html>
