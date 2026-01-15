@@ -281,7 +281,14 @@ P. IVA: 10728950964</textarea>
             <tr class="total-row"><td style="border-top: 2px solid #333;">NETTO A PAGARE</td><td class="amount" style="border-top: 2px solid #333;" id="out_net">0,00 €</td></tr>
         </table>
 
-        <div class="legal-note">Il sottoscritto dichiara altresì di non essere soggetto a IVA ai sensi degli artt. 1 e 5 del DPR 633/72 come successivamente integrato e modificato.<br>Prestazione occasionale soggetta a ritenuta d'acconto art. 25 DPR 600/73.<span id="bollo_note" style="display:none;"><br>Imposta di bollo assolta sull'originale.</span></div>
+        <div class="legal-note">
+            Il sottoscritto dichiara altresì di non essere soggetto a IVA ai sensi degli artt. 1 e 5 del DPR 633/72 come successivamente integrato e modificato.<br>
+            Prestazione occasionale soggetta a ritenuta d'acconto art. 25 DPR 600/73.
+            <br>
+            Il sottoscritto dichiara di NON aver superato il limite di € 5.000,00 annui per prestazioni occasionali (art. 61 D.Lgs. 276/2003), considerando anche il compenso della presente nota.
+            <span id="bollo_note" style="display:none;"><br>Imposta di bollo assolta sull'originale.</span>
+        </div>
+        
         <div class="payment-info">PAGAMENTO TRAMITE BONIFICO<br>IBAN: <span id="out_iban">...</span></div>
         <div class="signature"><div>Firma</div><div class="signature-line" id="out_sign_name"></div></div>
     </div>
@@ -333,7 +340,7 @@ P. IVA: 10728950964</textarea>
                 'in_city', 
                 'in_date_cal', 
                 'in_month',
-                'in_iban' // Aggiunto IBAN obbligatorio
+                'in_iban' 
             ];
 
             let isValid = true;
