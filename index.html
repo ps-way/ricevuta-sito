@@ -35,11 +35,16 @@
         }
 
         .full-width { grid-column: span 2; }
+        
+        /* Utility per raggruppare CAP e Comune */
+        .split-row { display: flex; gap: 15px; }
+        .split-row > div { flex: 1; }
 
         /* Mobile Friendly Rules */
         @media screen and (max-width: 768px) {
             .form-grid { grid-template-columns: 1fr !important; }
             .full-width { grid-column: span 1 !important; }
+            .split-row { flex-direction: column; gap: 15px; }
             .item-row { flex-direction: column; align-items: stretch !important; }
             .item-amount-in { width: 100% !important; margin-top: 5px; }
             .euro-symbol { display: none; }
@@ -57,7 +62,17 @@
         .preview-title-mobile { display: none; }
 
         label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9em; }
+        .req-star { color: #dc3545; margin-left: 3px; } /* Asterisco rosso per campi obbligatori */
+        .label-note { font-weight: normal; font-size: 0.85em; color: #666; margin-left: 5px; } /* Stile per la nota aggiuntiva */
+
         input, textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 16px; }
+        
+        /* Stile input disabilitato */
+        input:disabled, textarea:disabled { background-color: #e9ecef; color: #495057; cursor: not-allowed; font-weight: 500; }
+        
+        /* Classe per evidenziare errore */
+        .input-error { border: 2px solid #dc3545 !important; background-color: #fff8f8; }
+
         ::placeholder { color: #aaa; font-style: italic; }
 
         .items-section {
@@ -156,36 +171,61 @@
 
     <div class="control-panel no-print">
         <h2>Inserisci Dati</h2>
+        <p style="font-size:0.9em; color:#666;">I campi contrassegnati con <span style="color:#dc3545">*</span> sono obbligatori.</p>
         
         <div class="form-grid">
             <div>
-                <label>Tuo Nome e Cognome</label>
-                <input type="text" id="in_name" placeholder="Es: Mario Rossi" oninput="updateView()">
+                <label>Tuo Nome e Cognome <span class="req-star">*</span></label>
+                <input type="text" id="in_name" placeholder="Es: Mario Rossi" oninput="clearError(this); updateView()">
             </div>
             <div>
-                <label>Tuo Codice Fiscale</label>
-                <input type="text" id="in_cf" placeholder="Es: RSSMRA..." oninput="updateView()">
-            </div>
-            <div class="full-width">
-                <label>Tuo Indirizzo</label>
-                <input type="text" id="in_address" placeholder="Es: Via Pordenone 8, 20132, Milano" oninput="updateView()">
+                <label>Tuo Codice Fiscale <span class="req-star">*</span></label>
+                <input type="text" id="in_cf" placeholder="Es: RSSMRA..." oninput="clearError(this); updateView()">
             </div>
             
             <div class="full-width">
-                <label>Cliente (Azienda)</label>
-                <textarea rows="3" id="in_client" oninput="updateView()">Spett.le Azienda WAY S.r.l.
+                <label>Tuo Indirizzo (Via/Piazza) <span class="req-star">*</span></label>
+                <input type="text" id="in_street" placeholder="Es: Via Pordenone 8" oninput="clearError(this); updateView()">
+            </div>
+            
+            <div class="full-width split-row">
+                <div>
+                    <label>CAP <span class="req-star">*</span></label>
+                    <input type="text" id="in_zip" placeholder="Es: 20132" oninput="clearError(this); updateView()">
+                </div>
+                <div>
+                    <label>Comune <span class="req-star">*</span></label>
+                    <input type="text" id="in_city" placeholder="Es: Milano" oninput="clearError(this); updateView()">
+                </div>
+            </div>
+            
+            <div class="full-width">
+                <label>Cliente (Azienda) [Non Modificabile]</label>
+                <textarea rows="3" id="in_client" disabled>Spett.le Azienda WAY S.r.l.
 Via Pordenone, 2
 20132 Milano
 P. IVA: 10728950964</textarea>
             </div>
 
             <div>
-                <label>Città e Data</label>
-                <input type="text" id="in_date" placeholder="Es: Milano, 30 Settembre 2025" oninput="updateView()">
+                <label>Luogo</label>
+                <input type="text" value="Milano" disabled title="Campo fisso">
             </div>
+            
             <div>
-                <label>Mese/Rif.</label>
-                <input type="text" id="in_month" placeholder="Es: SETTEMBRE 2025" oninput="updateView()">
+                <label>
+                    Data <span class="req-star">*</span> 
+                    <span class="label-note">(impostare come data l'ultimo giorno del mese in cui è stato effettuata la prestazione)</span>
+                </label>
+                <input type="date" id="in_date_cal" oninput="clearError(this); updateView()">
+            </div>
+            
+            <div>
+                <label>
+                    Mese/Rif. <span class="req-star">*</span>
+                    <span class="label-note">(Mese in cui è stata svolta la prestazione)</span>
+                </label>
+                <input type="text" id="in_month" placeholder="Es: SETTEMBRE 2025" oninput="clearError(this); updateView()">
             </div>
         </div>
 
@@ -198,12 +238,12 @@ P. IVA: 10728950964</textarea>
 
         <div class="form-grid">
             <div class="full-width">
-                <label>Tuo IBAN</label>
-                <input type="text" id="in_iban" placeholder="IT00 X 00000..." oninput="updateView()">
+                <label>Tuo IBAN <span class="req-star">*</span></label>
+                <input type="text" id="in_iban" placeholder="IT00 X 00000..." oninput="clearError(this); updateView()">
             </div>
         </div>
 
-        <button class="print-btn" onclick="window.print()">🖨️ Stampa / Salva PDF</button>
+        <button class="print-btn" onclick="validateAndPrint()">🖨️ Stampa / Salva PDF</button>
         
         <div class="preview-title-mobile">
             <br>👇 Anteprima Ricevuta (Compact) 👇
@@ -226,7 +266,7 @@ P. IVA: 10728950964</textarea>
         </div>
 
         <div class="recipient-info"><pre id="out_client" style="font-family: inherit; margin:0;">Dati Cliente...</pre></div>
-        <div class="date-loc" id="out_date">Città, Data...</div>
+        <div class="date-loc" id="out_date">Milano, --/--/----</div>
         <div class="title">RICEVUTA PER LAVORO SVOLTO NEL MESE DI <span id="out_month">...</span></div>
         <div class="description-text">Ricevo compenso per il servizio occasionale di Accoglienza e Accompagnamento ai tour di Way Experience, a Milano.</div>
 
@@ -251,6 +291,11 @@ P. IVA: 10728950964</textarea>
             const container = document.getElementById('items-container');
             // Creiamo 4 righe vuote
             for(let i=0; i<4; i++) addNewRow();
+            
+            // Imposta la data di oggi come default nel calendario
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('in_date_cal').value = today;
+
             updateView();
         }
 
@@ -272,6 +317,46 @@ P. IVA: 10728950964</textarea>
             return num.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
         }
 
+        // Funzione per rimuovere bordo rosso quando l'utente scrive
+        function clearError(inputElement) {
+            inputElement.classList.remove('input-error');
+        }
+
+        // Funzione di validazione prima della stampa
+        function validateAndPrint() {
+            // Elenco ID campi obbligatori
+            const requiredIds = [
+                'in_name', 
+                'in_cf', 
+                'in_street', 
+                'in_zip', 
+                'in_city', 
+                'in_date_cal', 
+                'in_month',
+                'in_iban' // Aggiunto IBAN obbligatorio
+            ];
+
+            let isValid = true;
+            let firstErrorElement = null;
+
+            requiredIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (!el.value || el.value.trim() === '') {
+                    el.classList.add('input-error'); // Aggiunge bordo rosso
+                    isValid = false;
+                    if (!firstErrorElement) firstErrorElement = el;
+                }
+            });
+
+            if (!isValid) {
+                alert("Attenzione: Compila tutti i campi obbligatori (contrassegnati con *) prima di stampare.");
+                if (firstErrorElement) firstErrorElement.focus();
+                return;
+            }
+
+            window.print();
+        }
+
         function updateView() {
             const setSafeText = (idIn, idOut, placeholder) => {
                 const val = document.getElementById(idIn).value;
@@ -287,14 +372,43 @@ P. IVA: 10728950964</textarea>
 
             setSafeText('in_name', 'out_name', 'NOME COGNOME');
             setSafeText('in_name', 'out_sign_name', '');
-            setSafeText('in_address', 'out_address', 'INDIRIZZO COMPLETO');
             setSafeText('in_cf', 'out_cf', 'CODICE FISCALE');
-            setSafeText('in_date', 'out_date', 'Città, Data...');
             setSafeText('in_month', 'out_month', '...');
             setSafeText('in_iban', 'out_iban', 'IT00 ...');
             document.getElementById('out_client').innerText = document.getElementById('in_client').value;
 
-            // CALCOLI
+            // --- LOGICA INDIRIZZO ---
+            const street = document.getElementById('in_street').value;
+            const zip = document.getElementById('in_zip').value;
+            const city = document.getElementById('in_city').value;
+            let fullAddr = "";
+            
+            if (street) fullAddr += street;
+            if (zip) fullAddr += (fullAddr ? ", " : "") + zip;
+            if (city) fullAddr += " " + city;
+
+            const outAddr = document.getElementById('out_address');
+            if (fullAddr) {
+                outAddr.innerText = fullAddr;
+                outAddr.classList.remove("placeholder-text");
+            } else {
+                outAddr.innerHTML = '<span class="placeholder-text">INDIRIZZO COMPLETO</span>';
+            }
+
+            // --- LOGICA DATA ---
+            const dateVal = document.getElementById('in_date_cal').value;
+            const outDate = document.getElementById('out_date');
+            
+            if(dateVal) {
+                const dateObj = new Date(dateVal);
+                const options = { year: 'numeric', month: 'long', day: 'numeric' };
+                const formattedDate = dateObj.toLocaleDateString('it-IT', options);
+                outDate.innerText = "Milano, " + formattedDate;
+            } else {
+                outDate.innerText = "Milano, --/--/----";
+            }
+
+            // --- CALCOLI ---
             const descInputs = document.querySelectorAll('.item-desc-in');
             const amntInputs = document.querySelectorAll('.item-amount-in');
             const tableBody = document.getElementById('out_items_table');
@@ -348,5 +462,4 @@ P. IVA: 10728950964</textarea>
         init();
     </script>
 </body>
-
 </html>
